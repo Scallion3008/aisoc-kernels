@@ -79,11 +79,11 @@ def gemm(a, b, c, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("m", type=int, nargs="?", default=8192)
-    parser.add_argument("n", type=int, nargs="?", default=8192)
-    parser.add_argument("k", type=int, nargs="?", default=8192)
-    parser.add_argument("--tb-swizzle-group-size", type=int, default=0)
-    parser.add_argument("--mainloop-stages", type=int, default=1)
+    parser.add_argument("m", type=int, nargs="?", default=16384)
+    parser.add_argument("n", type=int, nargs="?", default=16384)
+    parser.add_argument("k", type=int, nargs="?", default=16384)
+    parser.add_argument("--tb-swizzle-group-size", type=int, required=True)
+    parser.add_argument("--mainloop-stages", type=int, required=True)
 
     args = parser.parse_args()
 

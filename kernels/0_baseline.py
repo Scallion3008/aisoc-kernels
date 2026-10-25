@@ -61,9 +61,9 @@ def gemm(a, b, c, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("m", type=int, nargs="?", default=8192)
-    parser.add_argument("n", type=int, nargs="?", default=8192)
-    parser.add_argument("k", type=int, nargs="?", default=8192)
+    parser.add_argument("m", type=int, nargs="?", default=16384)
+    parser.add_argument("n", type=int, nargs="?", default=16384)
+    parser.add_argument("k", type=int, nargs="?", default=16384)
 
     args = parser.parse_args()
 

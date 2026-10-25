@@ -4,6 +4,8 @@ Tune num_warps and mainloop stage count.
 Also tune TB swizzle group count as sanity check.
 
 To print detailed autotuning logs, use env var TRITON_PRINT_AUTOTUNING=1.
+
+Note: we match PyTorch on N=8192 and beat on N=16384.
 """
 
 import torch
@@ -14,35 +16,26 @@ import argparse
 from typing import Optional
 
 
-autotune_configs = [
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 8,
-                   'mainloop_stages': 2}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 8,
-                   'mainloop_stages': 3}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 8,
-                   'mainloop_stages': 4}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 8,
-                   'mainloop_stages': 5}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 8,
-                   'mainloop_stages': 2}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 16,
-                   'mainloop_stages': 3}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 16,
-                   'mainloop_stages': 4}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 16,
-                   'mainloop_stages': 5}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 8,
-                   'mainloop_stages': 2}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 32,
-                   'mainloop_stages': 3}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 32,
-                   'mainloop_stages': 4}, num_warps=8),
-    triton.Config({'BM': 128, 'BN': 256, 'BK': 64, 'tb_swizzle_group_size': 32,
-                   'mainloop_stages': 5}, num_warps=8),
-]
+TILE_SIZES = [(128, 256, 64),]
+TB_SWIZZLE_GROUP_SIZES = [0, 8, 16, 32]
+MAINLOOP_STAGE_COUNTS = [1, 2, 3, 4, 5]
+WARP_COUNTS = [4, 8]
+
+def get_configs():
+    configs = []
+    for (bm, bn, bk) in TILE_SIZES:
+        for tb_swizzle_group_size in TB_SWIZZLE_GROUP_SIZES:
+            for mainloop_stage_count in MAINLOOP_STAGE_COUNTS:
+                for warp_count in WARP_COUNTS:
+                    configs.append(triton.Config({
+                        'BM': bm, 'BN': bn, 'BK': bk,
+                        'tb_swizzle_group_size': tb_swizzle_group_size,
+                        'mainloop_stages': mainloop_stage_count
+                    }, num_warps=warp_count, num_stages=1))
+    return configs
 
 
-@triton.autotune(autotune_configs, key=["M", "N", "K"])
+@triton.autotune(get_configs(), key=["M", "N", "K"])
 @triton.jit
 def kernel(
         a_ptr, b_ptr, c_ptr,
@@ -113,9 +106,9 @@ def gemm(a, b, c, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("m", type=int, nargs="?", default=8192)
-    parser.add_argument("n", type=int, nargs="?", default=8192)
-    parser.add_argument("k", type=int, nargs="?", default=8192)
+    parser.add_argument("m", type=int, nargs="?", default=16384)
+    parser.add_argument("n", type=int, nargs="?", default=16384)
+    parser.add_argument("k", type=int, nargs="?", default=16384)
 
     args = parser.parse_args()
 
