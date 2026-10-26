@@ -4,6 +4,14 @@
 
 `kernels/` directory contains Triton kernels.
 
-## Notes
+Optimization ladder:
 
-Increasing pipeline stages seems to work better after enabling TB swizzle; maybe swap the order?
+0. Baseline tiled matmul
+1. Threadblock swizzle
+2. Pipelining
+3. TMA
+4. Autotuning
+
+## Running
+
+`uv sync` then `uv run path/to/kernel.py`
